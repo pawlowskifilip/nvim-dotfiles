@@ -259,7 +259,6 @@ require('lazy').setup(
     -- NOTE: Plugins can also be added by using a table,
     -- with the first argument being the link and the following
     -- keys can be used to configure plugin behavior/loading/etc.
-    --
     -- Use `opts = {}` to force a plugin to be loaded.
     --
 
@@ -281,10 +280,20 @@ require('lazy').setup(
       },
     },
 
+    {
+      'pmizio/typescript-tools.nvim',
+      dependencies = { 'nvim-lua/plenary.nvim', 'neovim/nvim-lspconfig' },
+      opts = {},
+    },
+
     -- oil nvim (for folder and files operations)
     {
       'stevearc/oil.nvim',
-      opts = {},
+      opts = {
+        view_options = {
+          show_hidden = true,
+        },
+      },
       -- Optional dependencies
       dependencies = { { 'echasnovski/mini.icons', opts = {} } },
     },
@@ -646,14 +655,14 @@ require('lazy').setup(
         })
 
         -- Change diagnostic symbols in the sign column (gutter)
-        -- if vim.g.have_nerd_font then
-        --   local signs = { ERROR = '', WARN = '', INFO = '', HINT = '' }
-        --   local diagnostic_signs = {}
-        --   for type, icon in pairs(signs) do
-        --     diagnostic_signs[vim.diagnostic.severity[type]] = icon
-        --   end
-        --   vim.diagnostic.config { signs = { text = diagnostic_signs } }
-        -- end
+        if vim.g.have_nerd_font then
+          local signs = { ERROR = '', WARN = '', INFO = '', HINT = '' }
+          local diagnostic_signs = {}
+          for type, icon in pairs(signs) do
+            diagnostic_signs[vim.diagnostic.severity[type]] = icon
+          end
+          vim.diagnostic.config { signs = { text = diagnostic_signs } }
+        end
 
         -- LSP servers and clients are able to communicate to each other what features they support.
         --  By default, Neovim doesn't support everything that is in the LSP specification.
@@ -672,9 +681,30 @@ require('lazy').setup(
         --  - settings (table): Override the default settings passed when initializing the server.
         --        For example, to see the options for `lua_ls`, you could go to: https://luals.github.io/wiki/settings/
         local servers = {
+          ruff = {
+            init_options = {
+              settings = {
+                organizeImports = true,
+                -- fixAll = true,
+              },
+            },
+          },
           -- clangd = {},
           -- gopls = {},
-          -- pyright = {},
+          pyright = {
+            settings = {
+              pyright = {
+                -- Using Ruff's import organizer
+                disableOrganizeImports = true,
+              },
+              python = {
+                analysis = {
+                  -- Ignore all files for analysis to exclusively use Ruff for linting
+                  ignore = { '*' },
+                },
+              },
+            },
+          },
           -- rust_analyzer = {},
           -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
           --
@@ -684,22 +714,6 @@ require('lazy').setup(
           -- But for many setups, the LSP (`ts_ls`) will work just fine
           -- ts_ls = {},
           --
-          pylsp = {
-            settings = {
-              pylsp = {
-                plugins = {
-                  pyflakes = { enabled = false },
-                  pycodestyle = { enabled = false },
-                  autopep8 = { enabled = false },
-                  yapf = { enabled = false },
-                  mccable = { enabled = false },
-                  pylsp_mypy = { enabled = false },
-                  pylsp_black = { enabled = false },
-                  pylsp_isort = { enabled = false },
-                },
-              },
-            },
-          },
 
           lua_ls = {
             -- cmd = { ... },
@@ -736,7 +750,8 @@ require('lazy').setup(
           'stylua', -- Used to format Lua code
           'shfmt',
           'prettier',
-          'black',
+          'ruff',
+          'pyright',
         })
         require('mason-tool-installer').setup { ensure_installed = ensure_installed }
 
@@ -790,6 +805,7 @@ require('lazy').setup(
         end,
         formatters_by_ft = {
           lua = { 'stylua' },
+          python = { 'ruff_organize_imports', 'ruff_format' },
           -- Conform can also run multiple formatters sequentially
           -- python = { "isort", "black" },
           --
